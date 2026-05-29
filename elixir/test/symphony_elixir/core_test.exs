@@ -105,10 +105,10 @@ defmodule SymphonyElixir.CoreTest do
 
     hooks = Map.get(config, "hooks", %{})
     assert is_map(hooks)
-    assert Map.get(hooks, "after_create") =~ "git clone --depth 1 https://github.com/openai/symphony ."
-    assert Map.get(hooks, "after_create") =~ "cd elixir && mise trust"
-    assert Map.get(hooks, "after_create") =~ "mise exec -- mix deps.get"
-    assert Map.get(hooks, "before_remove") =~ "cd elixir && mise exec -- mix workspace.before_remove"
+    assert Map.get(hooks, "after_create") =~ "git clone https://github.com/buzk123/ai-homework-tutor.git ."
+    assert Map.get(hooks, "after_create") =~ "cp -a \"$symphony_repo/.codex/skills\" .codex/"
+    assert Map.get(hooks, "after_create") =~ "printf '%s\\n' \".codex/\" >> .git/info/exclude"
+    assert Map.get(hooks, "before_remove") =~ "if [ -f elixir/mix.exs ]"
 
     assert String.trim(prompt) != ""
     assert is_binary(Config.workflow_prompt())
@@ -1042,8 +1042,8 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        hook_after_create: "cp #{Path.join(template_repo, "README.md")} README.md",
-        codex_command: "#{codex_binary} app-server"
+        hook_after_create: "cp #{shell_path(Path.join(template_repo, "README.md"))} README.md",
+        codex_command: "#{shell_path(codex_binary)} app-server"
       )
 
       issue = %Issue{
@@ -1127,8 +1127,8 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        hook_after_create: "cp #{Path.join(template_repo, "README.md")} README.md",
-        codex_command: "#{codex_binary} app-server"
+        hook_after_create: "cp #{shell_path(Path.join(template_repo, "README.md"))} README.md",
+        codex_command: "#{shell_path(codex_binary)} app-server"
       )
 
       issue = %Issue{
@@ -1185,7 +1185,7 @@ defmodule SymphonyElixir.CoreTest do
 
       File.mkdir_p!(test_root)
       System.put_env("SYMP_TEST_SSH_TRACE", trace_file)
-      System.put_env("PATH", test_root <> ":" <> (previous_path || ""))
+      System.put_env("PATH", path_env(test_root, previous_path))
 
       File.write!(fake_ssh, """
       #!/bin/sh
@@ -1293,8 +1293,8 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        hook_after_create: "cp #{Path.join(template_repo, "README.md")} README.md",
-        codex_command: "#{codex_binary} app-server",
+        hook_after_create: "cp #{shell_path(Path.join(template_repo, "README.md"))} README.md",
+        codex_command: "#{shell_path(codex_binary)} app-server",
         max_turns: 3
       )
 
@@ -1423,8 +1423,8 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        hook_after_create: "cp #{Path.join(template_repo, "README.md")} README.md",
-        codex_command: "#{codex_binary} app-server",
+        hook_after_create: "cp #{shell_path(Path.join(template_repo, "README.md"))} README.md",
+        codex_command: "#{shell_path(codex_binary)} app-server",
         max_turns: 2
       )
 
@@ -1522,7 +1522,7 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        codex_command: "#{codex_binary} app-server"
+        codex_command: "#{shell_path(codex_binary)} app-server"
       )
 
       issue = %Issue{
@@ -1666,7 +1666,7 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        codex_command: "#{codex_binary} --config 'model=\"gpt-5.5\"' app-server"
+        codex_command: "#{shell_path(codex_binary)} --config 'model=\"gpt-5.5\"' app-server"
       )
 
       issue = %Issue{
@@ -1755,7 +1755,7 @@ defmodule SymphonyElixir.CoreTest do
 
       write_workflow_file!(Workflow.workflow_file_path(),
         workspace_root: workspace_root,
-        codex_command: "#{codex_binary} app-server",
+        codex_command: "#{shell_path(codex_binary)} app-server",
         codex_approval_policy: "on-request",
         codex_thread_sandbox: "workspace-write",
         codex_turn_sandbox_policy: %{

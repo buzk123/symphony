@@ -4,7 +4,7 @@ defmodule SymphonyElixir.Workspace do
   """
 
   require Logger
-  alias SymphonyElixir.{Config, PathSafety, SSH}
+  alias SymphonyElixir.{Config, LocalShell, PathSafety, SSH}
 
   @remote_workspace_marker "__SYMPHONY_WORKSPACE__"
 
@@ -296,21 +296,27 @@ defmodule SymphonyElixir.Workspace do
 
     Logger.info("Running workspace hook hook=#{hook_name} #{issue_log_context(issue_context)} workspace=#{workspace} worker_host=local")
 
-    task =
-      Task.async(fn ->
-        System.cmd("sh", ["-lc", command], cd: workspace, stderr_to_stdout: true)
-      end)
-
-    case Task.yield(task, timeout_ms) do
-      {:ok, cmd_result} ->
-        handle_hook_command_result(cmd_result, workspace, issue_context, hook_name)
-
+    case LocalShell.find("sh") do
       nil ->
-        Task.shutdown(task, :brutal_kill)
+        {:error, {:workspace_hook_failed, hook_name, :shell_not_found, "sh not found"}}
 
-        Logger.warning("Workspace hook timed out hook=#{hook_name} #{issue_log_context(issue_context)} workspace=#{workspace} worker_host=local timeout_ms=#{timeout_ms}")
+      shell ->
+        task =
+          Task.async(fn ->
+            System.cmd(shell, ["-lc", command], cd: workspace, stderr_to_stdout: true)
+          end)
 
-        {:error, {:workspace_hook_timeout, hook_name, timeout_ms}}
+        case Task.yield(task, timeout_ms) do
+          {:ok, cmd_result} ->
+            handle_hook_command_result(cmd_result, workspace, issue_context, hook_name)
+
+          nil ->
+            Task.shutdown(task, :brutal_kill)
+
+            Logger.warning("Workspace hook timed out hook=#{hook_name} #{issue_log_context(issue_context)} workspace=#{workspace} worker_host=local timeout_ms=#{timeout_ms}")
+
+            {:error, {:workspace_hook_timeout, hook_name, timeout_ms}}
+        end
     end
   end
 

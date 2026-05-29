@@ -22,7 +22,14 @@ defmodule SymphonyElixir.TestSupport do
       alias SymphonyElixir.Workspace
 
       import SymphonyElixir.TestSupport,
-        only: [write_workflow_file!: 1, write_workflow_file!: 2, restore_env: 2, stop_default_http_server: 0]
+        only: [
+          write_workflow_file!: 1,
+          write_workflow_file!: 2,
+          restore_env: 2,
+          stop_default_http_server: 0,
+          shell_path: 1,
+          path_env: 2
+        ]
 
       setup do
         workflow_root =
@@ -68,6 +75,19 @@ defmodule SymphonyElixir.TestSupport do
 
   def restore_env(key, nil), do: System.delete_env(key)
   def restore_env(key, value), do: System.put_env(key, value)
+
+  def shell_path(path) when is_binary(path) do
+    path
+    |> Path.expand()
+    |> String.replace("\\", "/")
+    |> shell_double_quote()
+  end
+
+  def path_env(first_entry, nil), do: first_entry
+
+  def path_env(first_entry, existing_path) do
+    first_entry <> path_separator() <> existing_path
+  end
 
   def stop_default_http_server do
     case Enum.find(Supervisor.which_children(SymphonyElixir.Supervisor), fn
@@ -204,7 +224,12 @@ defmodule SymphonyElixir.TestSupport do
   end
 
   defp yaml_value(value) when is_binary(value) do
-    "\"" <> String.replace(value, "\"", "\\\"") <> "\""
+    escaped =
+      value
+      |> String.replace("\\", "\\\\")
+      |> String.replace("\"", "\\\"")
+
+    "\"" <> escaped <> "\""
   end
 
   defp yaml_value(value) when is_integer(value), do: to_string(value)
@@ -286,5 +311,23 @@ defmodule SymphonyElixir.TestSupport do
       |> Enum.map_join("\n", &("    " <> &1))
 
     "  #{name}: |\n#{indented}"
+  end
+
+  defp shell_double_quote(value) when is_binary(value) do
+    escaped =
+      value
+      |> String.replace("\\", "\\\\")
+      |> String.replace("\"", "\\\"")
+      |> String.replace("$", "\\$")
+      |> String.replace("`", "\\`")
+
+    "\"" <> escaped <> "\""
+  end
+
+  defp path_separator do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
+    end
   end
 end

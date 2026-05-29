@@ -1,0 +1,225 @@
+# Symphony + Codex Windows 快速启动手册
+
+## 1. 进入项目
+
+```bash
+cd /e/project/AginLG/symphony/symphony/elixir
+```
+
+确认目录：
+
+```bash
+ls
+```
+
+应该看到：
+
+```text
+WORKFLOW.md
+AGENTS.md
+mix.exs
+bin
+```
+
+---
+
+## 2. 安装依赖
+
+首次安装：
+
+```bash
+mix deps.get
+```
+
+---
+
+## 3. 编译
+
+```bash
+mix build
+```
+
+成功后会出现：
+
+```text
+Generated escript bin/symphony
+```
+
+---
+
+## 4. 配置 Codex
+
+WORKFLOW.md：
+
+```yaml
+codex:
+  command: codex --yolo app-server -c shell_environment_policy.inherit=all -c 'model="gpt-5.5"' -c model_reasoning_effort=xhigh
+  read_timeout_ms: 120000
+  approval_policy: never
+  thread_sandbox: workspace-write
+  turn_sandbox_policy:
+    type: workspaceWrite
+```
+
+---
+
+## 5. 检查 Codex
+
+```bash
+codex --version
+```
+
+应该看到：
+
+```text
+0.135.x
+```
+
+检查：
+
+```bash
+codex app-server --help
+```
+
+正常显示帮助即可。
+
+---
+
+## 6. 启动 Symphony
+
+```bash
+bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails WORKFLOW.md
+```
+
+---
+
+## 7. Linear 状态配置
+
+Linear 当前状态：
+
+```text
+Backlog
+Planned
+In Progress
+Completed
+Canceled
+```
+
+WORKFLOW.md 中必须匹配：
+
+```yaml
+active_states:
+  - Backlog
+  - Planned
+  - In Progress
+```
+
+否则 Symphony 抓不到 Issue。
+
+---
+
+## 8. 新建 Issue
+
+例如：
+
+```text
+BUZ-18
+
+创建 Next.js 项目
+
+Acceptance Criteria
+
+- 初始化 Next.js
+- 配置 Tailwind
+- 配置 ESLint
+- pnpm dev 正常启动
+```
+
+状态：
+
+```text
+Backlog
+```
+
+---
+
+## 9. Workspace 目录
+
+Symphony 会创建：
+
+```text
+C:\Users\Administrator\code\symphony-workspaces\
+```
+
+例如：
+
+```text
+BUZ-18
+```
+
+---
+
+## 10. 查看运行状态
+
+Linear：
+
+```text
+Backlog
+↓
+In Progress
+```
+
+出现：
+
+```text
+Codex Workpad
+```
+
+说明正常。
+
+---
+
+## 11. 删除缓存重新执行
+
+停止：
+
+```bash
+Ctrl + C
+```
+
+删除：
+
+```bash
+rm -rf /c/Users/Administrator/code/symphony-workspaces/BUZ-18
+```
+
+重新启动：
+
+```bash
+bin/symphony --i-understand-that-this-will-be-running-without-the-usual-guardrails WORKFLOW.md
+```
+
+---
+
+## 12. 常用排查
+
+### 看日志
+
+```bash
+tail -f log/dev.log
+```
+
+### 看 Workspace
+
+```bash
+cd /c/Users/Administrator/code/symphony-workspaces/BUZ-18
+git status
+```
+
+### 看 Codex Session
+
+```text
+C:\Users\Administrator\.codex\sessions\
+```
+
+查看最新 jsonl 文件。
